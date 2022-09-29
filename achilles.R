@@ -7,7 +7,7 @@ library(DataQualityDashboard)
 library(docopt)
 library(stringr)
 
-version_str <- "Achilles Wrapper v1.5"
+version_str <- "Achilles Wrapper v1.6"
 
 'Achilles Wrapper
 
@@ -47,18 +47,18 @@ JSON Export Options:
   --json-output-base=<DIRECTORY>  The output path used by exportToJson [default: /output]
 
 DataQualityDashboard Options:
-  --dqd                          Whether to run the DataQualityDashboard functions
-  --dqd-sql-only                 Return DQD queries but do not run them
-  --dqd-verbose                  Whether to write DataQualityDashboard info
-  --dqd-json-file                Whether to write a JSON file to disk
-  --dqd-skip-db-write            Skip writing results to the dqdashboard_results table in the results schema
-  --dqd-check-names=<list>       Optional comma-separated list of check names to execute
-  --dqd-check-levels=<list>      Comma-separated list of which DQ check levels to execute [default: TABLE,FIELD,CONCEPT]
-  --dqd-exclude-tables=<list>    Comma-separated list of CDM tables to exclude from the checks
-  --dqd-output-base=<DIRECTORY>  The output path used by the dqd functions [default: /output]
-  --dqd-table-threshold-file     The optional location of the threshold file for evaluating the table checks; this is useful for overriding thresholds [default: default]
-  --dqd-field-threshold-file     The optional location of the threshold file for evaluating the field checks; this is useful for overriding thresholds [default: default]
-  --dqd-concept-threshold-file   The optional location of the threshold file for evaluating the concept checks; this is useful for overriding thresholds [default: default]
+  --dqd                                Whether to run the DataQualityDashboard functions
+  --dqd-sql-only                       Return DQD queries but do not run them
+  --dqd-verbose                        Whether to write DataQualityDashboard info
+  --dqd-json-file                      Whether to write a JSON file to disk
+  --dqd-skip-db-write                  Skip writing results to the dqdashboard_results table in the results schema
+  --dqd-check-names=<list>             Optional comma-separated list of check names to execute
+  --dqd-check-levels=<list>            Comma-separated list of which DQ check levels to execute [default: TABLE,FIELD,CONCEPT]
+  --dqd-exclude-tables=<list>          Comma-separated list of CDM tables to exclude from the checks
+  --dqd-output-base=<DIRECTORY>        The output path used by the dqd functions [default: /output]
+  --dqd-table-threshold-file=<file>    The optional location of the threshold file for evaluating the table checks; this is useful for overriding thresholds [default: default]
+  --dqd-field-threshold-file=<file>    The optional location of the threshold file for evaluating the field checks; this is useful for overriding thresholds [default: default]
+  --dqd-concept-threshold-file=<file>  The optional location of the threshold file for evaluating the concept checks; this is useful for overriding thresholds [default: default]
 
 DQDWeb Options:
   --dqd-web                      Whether to run the DataQualityDashboard Shiny App
