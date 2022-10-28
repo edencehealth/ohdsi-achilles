@@ -207,9 +207,9 @@ if (!args$skip_achilles || args$dqd) {
     server <- args$db_hostname
   }
 
-  extra_settings = NULL
+  extra_settings <- NULL
   if (args$db_extra_settings != "") {
-    extra_settings = args$db_extra_settings
+    extra_settings <- args$db_extra_settings
   }
 
   # Create connection details using DatabaseConnector utility.
@@ -242,6 +242,7 @@ if (!args$skip_achilles) {
     optimizeAtlasCache = args$optimize_atlas_cache
   )
 
+  print("---> Starting achilles exportToJson")
   if (args$json_export) {
     # Export Achilles results to output path in JSON format
     exportToJson(
