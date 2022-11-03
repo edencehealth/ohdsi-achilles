@@ -146,7 +146,7 @@ for (name in arg_names[grepl("--", arg_names, fixed = TRUE)]) {
   filtered_args[name] <- NULL
 }
 filtered_args["help"] <- NULL
-print("Runtime configuration:")
+cat("Runtime configuration:\n")
 print(filtered_args)
 
 valid_dbms <- list(
@@ -226,7 +226,7 @@ if (!args$skip_achilles || args$dqd) {
 
 # run achilles
 if (!args$skip_achilles) {
-    print("---> Starting Achilles")
+    cat("---> Starting Achilles\n")
 
   # https://ohdsi.github.io/Achilles/reference/achilles.html
   achilles(
@@ -242,7 +242,7 @@ if (!args$skip_achilles) {
     optimizeAtlasCache = args$optimize_atlas_cache
   )
 
-  print("---> Starting achilles exportToJson")
+  cat("---> Starting achilles exportToJson\n")
   if (args$json_export) {
     # Export Achilles results to output path in JSON format
     exportToJson(
@@ -258,7 +258,7 @@ if (!args$skip_achilles) {
 
 # run DataQualityDashboard
 if (args$dqd) {
-  print("---> Starting DataQualityDashboard checks")
+  cat("---> Starting DataQualityDashboard checks\n")
 
   output_file <- str_glue("DQD_Results{args$timestamp}.json")
 
@@ -290,7 +290,7 @@ if (args$dqd) {
 
 # run dqd_web (dqdviz)
 if (args$dqd_web) {
-  print("---> Starting DataQualityDashboard web app")
+  cat("---> Starting DataQualityDashboard web app\n")
   if (Sys.getenv("jsonPath") == "") {
     # DQDViz relies on the envvar jsonPath;
     # * if the envvar "jsonPath" is already set, use it
