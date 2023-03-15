@@ -7,7 +7,7 @@ library(DataQualityDashboard)
 library(docopt)
 library(stringr)
 
-version_str <- "Achilles Wrapper v1.7"
+wrapper_version_str <- '1.8'
 
 'Achilles Wrapper
 
@@ -75,6 +75,12 @@ parse_bool <- function(str_value) {
   toupper(str_value) %in% c("1", "TRUE", "YES", "Y", "ON")
 }
 
+version_str <- paste(
+  "edenceHealth Achilles/DQD Wrapper:", wrapper_version_str,
+  "/ Achilles:", packageVersion("Achilles"),
+  "/ DataQualityDashboard:", packageVersion("DataQualityDashboard"),
+  "\n"
+)
 args <- docopt(doc_str, version = version_str)
 arg_defaults <- docopt(doc_str, args = c(), version = version_str)
 arg_names <- names(args)

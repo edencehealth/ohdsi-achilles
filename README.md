@@ -1,5 +1,7 @@
 # Achilles (and DQD) Container Image
 
+https://ohdsi.github.io/Achilles/articles/RunningAchilles.html
+
 This repo contains the source code for edenceHealth's Docker image containing both [OHDSI Achilles](https://github.com/OHDSI/Achilles) and [OHDSI DataQualityDashboard](https://github.com/OHDSI/DataQualityDashboard). These two tools share some basic dependenices and have a similar use cases, so we bundle them together. The image adds a lightweight wrapper around  these tools which simplifies the process of calling them without a separate R installation.
 
 For more information about the tools, see the following links:
@@ -75,8 +77,13 @@ DQDWeb Options:
   --dqd-web-host=<hostname>      The network host address the DataQualityDashboard Shiny App should listen on  [default: 0.0.0.0]
   --dqd-web-port=<n>             The network port number the DataQualityDashboard Shiny App should listen on [default: 5641]
   --dqd-web-display-mode=<mode>  The Shiny App display.mode to use for the app, options include "showcase" or "normal" [default: normal]
-  --dqd-web-input-json=<PATH>    Optionally override the input path used by the DataQualityDashboard Shiny App, by default this is derived from the output path by the DQD step [default: AUTO] 
+  --dqd-web-input-json=<PATH>    Optionally override the input path used by the DataQualityDashboard Shiny App, by default this is derived from the output path by the DQD step [default: AUTO]
+```
 
+Running the container with the `--version` argument prints the version information:
+
+```
+edenceHealth Achilles/DQD Wrapper: 1.8 / Achilles: 1.7 / DataQualityDashboard: 1.4.1
 ```
 
 ## Configuration via Environment Variables
