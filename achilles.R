@@ -7,7 +7,7 @@ library(DataQualityDashboard)
 library(docopt)
 library(stringr)
 
-version_str <- "Achilles Wrapper v1.6"
+wrapper_version_str <- "1.8"
 
 'Achilles Wrapper
 
@@ -33,12 +33,13 @@ Schema Options:
   --vocab-schema=<name>    DB schema name for vocabulary data [default: vocabulary]
 
 CDM DB Options:
-  --db-dbms=<name>        The database management system for the CDM database [default: postgresql]
-  --db-hostname=<name>    The hostname the database server is listening on [default: db]
-  --db-port=<n>           The port the database server is listening on [default: 5432]
-  --db-name=<name>        The name of the database on the database server [default: cdm]
-  --db-username=<name>    The username to connect to the database server with [default: pgadmin]
-  --db-password=<name>    The password to connect to the database server with [default: postgres]
+  --db-dbms=<name>         The database management system for the CDM database [default: postgresql]
+  --db-hostname=<name>     The hostname the database server is listening on [default: db]
+  --db-port=<n>            The port the database server is listening on [default: 5432]
+  --db-name=<name>         The name of the database on the database server [default: cdm]
+  --db-username=<name>     The username to connect to the database server with [default: pgadmin]
+  --db-password=<name>     The password to connect to the database server with [default: postgres]
+  --db-extra-settings=<s>  Optional additional settings for the database driver (in JDBC connection format)
   --databaseconnector-jar-folder=<directory>  The path to the driver jar files used by the DatabaseConnector to connect to various DBMS [default: /usr/local/lib/DatabaseConnectorJars]
 
 JSON Export Options:
@@ -74,6 +75,12 @@ parse_bool <- function(str_value) {
   toupper(str_value) %in% c("1", "TRUE", "YES", "Y", "ON")
 }
 
+version_str <- paste(
+  "edenceHealth Achilles/DQD Wrapper:", wrapper_version_str,
+  "/ Achilles:", packageVersion("Achilles"),
+  "/ DataQualityDashboard:", packageVersion("DataQualityDashboard"),
+  "\n"
+)
 args <- docopt(doc_str, version = version_str)
 arg_defaults <- docopt(doc_str, args = c(), version = version_str)
 arg_names <- names(args)
@@ -145,7 +152,7 @@ for (name in arg_names[grepl("--", arg_names, fixed = TRUE)]) {
   filtered_args[name] <- NULL
 }
 filtered_args["help"] <- NULL
-print("Runtime configuration:")
+cat("Runtime configuration:\n")
 print(filtered_args)
 
 valid_dbms <- list(
@@ -192,7 +199,7 @@ for (path in c(output_path, json_output_path, dqd_output_path)) {
   dir.create(path, showWarnings = FALSE, recursive = TRUE, mode = "0755")
 }
 
-# achilles
+# create database connection details
 if (!args$skip_achilles || args$dqd) {
   if (!(args$db_dbms %in% valid_dbms)) {
     stop("Cannot proceed with invalid dbms: ", args$db_dbms)
@@ -206,6 +213,11 @@ if (!args$skip_achilles || args$dqd) {
     server <- args$db_hostname
   }
 
+  extra_settings <- NULL
+  if (args$db_extra_settings != "") {
+    extra_settings <- args$db_extra_settings
+  }
+
   # Create connection details using DatabaseConnector utility.
   connectionDetails <- createConnectionDetails(
     dbms = args$db_dbms,
@@ -213,11 +225,15 @@ if (!args$skip_achilles || args$dqd) {
     password = args$db_password,
     server = server,
     port = args$db_port,
+    extraSettings = extra_settings,
     pathToDriver = args$databaseconnector_jar_folder
   )
 }
 
+# run achilles
 if (!args$skip_achilles) {
+    cat("---> Starting Achilles\n")
+
   # https://ohdsi.github.io/Achilles/reference/achilles.html
   achilles(
     connectionDetails,
@@ -232,6 +248,7 @@ if (!args$skip_achilles) {
     optimizeAtlasCache = args$optimize_atlas_cache
   )
 
+  cat("---> Starting achilles exportToJson\n")
   if (args$json_export) {
     # Export Achilles results to output path in JSON format
     exportToJson(
@@ -245,8 +262,10 @@ if (!args$skip_achilles) {
   }
 }
 
-# DataQualityDashboard
+# run DataQualityDashboard
 if (args$dqd) {
+  cat("---> Starting DataQualityDashboard checks\n")
+
   output_file <- str_glue("DQD_Results{args$timestamp}.json")
 
   # https://ohdsi.github.io/DataQualityDashboard/reference/executeDqChecks.html
@@ -275,8 +294,9 @@ if (args$dqd) {
   Sys.setenv(jsonPath = output_file)
 }
 
-# dqd_web (dqdviz)
+# run dqd_web (dqdviz)
 if (args$dqd_web) {
+  cat("---> Starting DataQualityDashboard web app\n")
   if (Sys.getenv("jsonPath") == "") {
     # DQDViz relies on the envvar jsonPath;
     # * if the envvar "jsonPath" is already set, use it
