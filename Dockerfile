@@ -1,4 +1,4 @@
-FROM edence/ohdsi-rcore:latest
+FROM edence/rcore:1
 LABEL maintainer="edenceHealth <info@edence.health>"
 
 RUN set -eux; \
