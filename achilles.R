@@ -7,7 +7,7 @@ library(DataQualityDashboard)
 library(docopt)
 library(stringr)
 
-wrapper_version_str <- "1.8"
+wrapper_version_str <- "1.9"
 
 'Achilles Wrapper
 
@@ -218,14 +218,28 @@ if (!args$skip_achilles || args$dqd) {
     extra_settings <- args$db_extra_settings
   }
 
-  # Create connection details using DatabaseConnector utility.
-  connectionDetails <- createConnectionDetails(
+  connection_string <- NULL
+  if (args$db_dbms == "sql server") {
+    connection_string <- paste(
+      "jdbc:",
+      gsub("\\s", "", args$db_dbms),  # removing the space in "sql server"
+      "://",
+      args$db_hostname,
+      ":",
+      args$db_port,
+      ";databaseName=",
+      args$db_name,
+      sep = ""
+    )
+  }
+  connection_details <- createConnectionDetails(
     dbms = args$db_dbms,
     user = args$db_username,
     password = args$db_password,
     server = server,
     port = args$db_port,
     extraSettings = extra_settings,
+    connectionString = connection_string,
     pathToDriver = args$databaseconnector_jar_folder
   )
 }
@@ -236,7 +250,7 @@ if (!args$skip_achilles) {
 
   # https://ohdsi.github.io/Achilles/reference/achilles.html
   achilles(
-    connectionDetails,
+    connection_details,
     cdmDatabaseSchema = args$cdm_schema,
     resultsDatabaseSchema = args$results_schema,
     vocabDatabaseSchema = args$vocab_schema,
@@ -252,7 +266,7 @@ if (!args$skip_achilles) {
   if (args$json_export) {
     # Export Achilles results to output path in JSON format
     exportToJson(
-      connectionDetails,
+      connection_details,
       cdmDatabaseSchema = args$cdm_schema,
       resultsDatabaseSchema = args$results_schema,
       vocabDatabaseSchema = args$vocab_schema,
@@ -270,7 +284,7 @@ if (args$dqd) {
 
   # https://ohdsi.github.io/DataQualityDashboard/reference/executeDqChecks.html
   executeDqChecks(
-    connectionDetails = connectionDetails,
+    connectionDetails = connection_details,
     cdmDatabaseSchema = args$cdm_schema,
     resultsDatabaseSchema = args$results_schema,
     vocabDatabaseSchema = args$vocab_schema,
