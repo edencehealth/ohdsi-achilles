@@ -5,13 +5,13 @@ warn() {
   printf '%s %s\n' "$(date '+%FT%T')" "$*" >&2
 }
 
-die() {
-  warn "FATAL:" "$@"
-  exit 1
-}
+# die() {
+#   warn "FATAL:" "$@"
+#   exit 1
+# }
 
 main() {
-  warn "ENTRYPOINT starting; $(id)"
+  warn "ENTRYPOINT starting; as $(id) in $(pwd)"
 
   # normally this will only be one directory
   export R_LIBS="${R_LIBS:-}"
