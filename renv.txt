@@ -3,3 +3,4 @@ OHDSI/DataQualityDashboard
 OHDSI/DatabaseConnector
 docopt
 stringr
+shiny

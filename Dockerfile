@@ -34,12 +34,9 @@ ENV DATABASECONNECTOR_JAR_FOLDER="/usr/local/lib/DatabaseConnectorJars"
 RUN set -eux; \
   Rscript \
     -e 'renv::activate("/app")' \
+    -e 'renv::install("shiny")' \
     -e 'library(DatabaseConnector)' \
-    -e 'downloadJdbcDrivers("oracle")' \
-    -e 'downloadJdbcDrivers("postgresql")' \
-    -e 'downloadJdbcDrivers("redshift")' \
-    -e 'downloadJdbcDrivers("spark")' \
-    -e 'downloadJdbcDrivers("sql server")' \
+    -e 'downloadJdbcDrivers("all")' \
   ;
 
 WORKDIR /output
