@@ -5,4 +5,6 @@
 **/.venv
 **/.vscode
 **/venv
+.Rhistory
+.Rproj.user
 renv

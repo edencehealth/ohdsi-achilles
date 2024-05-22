@@ -5,6 +5,8 @@
 **/.venv
 **/.vscode
 **/venv
+.Rhistory
+.Rproj.user
 .git
 .github
 .gitignore
