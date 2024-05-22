@@ -1,13 +1,12 @@
 FROM edence/rcore:1
 LABEL maintainer="edenceHealth <info@edence.health>"
 
+ARG AG="apt-get -yq --no-install-recommends"
+ARG DEBIAN_FRONTEND="noninteractive"
+
 RUN set -eux; \
-  export \
-    AG="apt-get -yq" \
-    DEBIAN_FRONTEND="noninteractive" \
-  ; \
-  apt-get -yq update; \
-  apt-get -yq install --no-install-recommends \
+  $AG update; \
+  $AG install \
     awscli \
   ; \
   $AG autoremove; \
