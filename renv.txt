@@ -2,5 +2,5 @@ OHDSI/Achilles
 OHDSI/DataQualityDashboard
 OHDSI/DatabaseConnector
 docopt
-stringr
 shiny
+stringr
