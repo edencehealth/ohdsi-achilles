@@ -1,13 +1,12 @@
 FROM edence/rcore:1
 LABEL maintainer="edenceHealth <info@edence.health>"
 
+ARG AG="apt-get -yq --no-install-recommends"
+ARG DEBIAN_FRONTEND="noninteractive"
+
 RUN set -eux; \
-  export \
-    AG="apt-get -yq" \
-    DEBIAN_FRONTEND="noninteractive" \
-  ; \
-  apt-get -yq update; \
-  apt-get -yq install --no-install-recommends \
+  $AG update; \
+  $AG install \
     awscli \
   ; \
   $AG autoremove; \
@@ -20,31 +19,36 @@ RUN set -eux; \
     /var/cache/apt \
   ;
 
-COPY renv.lock ./
+ARG GITHUB_PAT
+
+WORKDIR /app
+
+COPY renv.txt ./
 RUN --mount=type=cache,sharing=private,target=/renv_cache \
   set -eux; \
   Rscript \
-    -e 'renv::activate("/app");' \
-    -e 'renv::restore();' \
+    -e 'renv::init();' \
+    -e 'renv::install(readLines("renv.txt"));' \
+    -e 'renv::update();' \
     -e 'renv::isolate();' \
+    -e 'renv::snapshot(type="all");' \
   ;
 
-# https://ohdsi.github.io/DatabaseConnector/articles/Connecting.html#the-jar-folder
+# # https://ohdsi.github.io/DatabaseConnector/articles/Connecting.html#the-jar-folder
 ENV DATABASECONNECTOR_JAR_FOLDER="/usr/local/lib/DatabaseConnectorJars"
-RUN set -eux; \
-  Rscript \
-    -e 'renv::activate("/app")' \
+RUN Rscript \
     -e 'library(DatabaseConnector)' \
-    -e 'downloadJdbcDrivers("oracle")' \
-    -e 'downloadJdbcDrivers("postgresql")' \
-    -e 'downloadJdbcDrivers("redshift")' \
-    -e 'downloadJdbcDrivers("spark")' \
-    -e 'downloadJdbcDrivers("sql server")' \
+    -e 'downloadJdbcDrivers("all", method="libcurl")' \
   ;
 
-WORKDIR /output
+RUN set -eux; \
+  printf '\n%s\n' 'source("/app/renv/activate.R")' \
+    | tee -a /etc/R/Rprofile.site;
 
-COPY ["achilles.R", "entrypoint.sh", "/app/"]
-USER nonroot
 
-ENTRYPOINT ["/app/entrypoint.sh"]
+# WORKDIR /output
+
+COPY ["achilles.R", "/app/"]
+# USER nonroot
+
+ENTRYPOINT ["/usr/bin/Rscript", "/app/achilles.R"]

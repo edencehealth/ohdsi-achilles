@@ -1,5 +1,6 @@
 OHDSI/Achilles
 OHDSI/DataQualityDashboard
 OHDSI/DatabaseConnector
-docopt
+edencehealth/rbasecfg
 stringr
+yaml
