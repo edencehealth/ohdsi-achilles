@@ -15,4 +15,5 @@ jobs:
     with:
       container_name: ohdsi-achilles
       push_readme: README.md
+      push: true
     secrets: inherit
