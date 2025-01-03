@@ -246,7 +246,7 @@ if (!args$skip_achilles || args$dqd) {
 
     # Check if args$db_hostname contains a backslash (i.e., an instance name)
     if (grepl("\\", db_hostname, fixed = TRUE)) {
-      hostname_parts <- strsplit(db_hostname, "\\")[[1]]
+      hostname_parts <- strsplit(db_hostname, "\\", fixed = TRUE)[[1]]
       server_name <- hostname_parts[1]
       instance_name <- hostname_parts[2]
       cat(
