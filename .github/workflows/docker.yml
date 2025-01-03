@@ -1,11 +1,12 @@
 name: Docker
 
 "on":
+  pull_request:
   push:
     branches:
       - main
     tags:
-      - '*.*.*'
+      - "*.*.*"
 
 jobs:
   # https://github.com/edencehealth/workflows
