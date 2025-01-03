@@ -9,7 +9,7 @@ library(stringr)
 
 wrapper_version_str <- "1.9"
 
-'Achilles Wrapper
+doc_str <- 'Achilles Wrapper
 
 Usage:
   achilles.R [options]
@@ -67,8 +67,7 @@ DQDWeb Options:
   --dqd-web-port=<n>             The network port number the DataQualityDashboard Shiny App should listen on [default: 5641]
   --dqd-web-display-mode=<mode>  The Shiny App display.mode to use for the app, options include "showcase" or "normal" [default: normal]
   --dqd-web-input-json=<PATH>    Optionally override the input path used by the DataQualityDashboard Shiny App, by default this is derived from the output path by the DQD step [default: AUTO]
-' -> doc_str
-
+'
 
 # Argument & environment variable parsing
 parse_bool <- function(str_value) {
@@ -157,13 +156,20 @@ print(filtered_args)
 
 valid_dbms <- list(
   "bigquery",
+  "duckdb",
+  "hive",
+  "impala",
   "netezza",
   "oracle",
   "pdw",
   "postgresql",
   "redshift",
+  "snowflake",
+  "spark",
   "sql server",
-  "sqlite"
+  "sqlite extended",
+  "sqlite",
+  "synapse"
 )
 
 # these dbms require the database name to be appended to the hostname
@@ -208,45 +214,65 @@ if (!args$skip_achilles || args$dqd) {
   # Some connection packages need the database on the server argument.
   # see ?createConnectionDetails after loading library(Achilles)
   if (args$db_dbms %in% name_concat_dbms) {
-    server <- paste(args$db_hostname, args$db_name, sep = "/")
+    db_hostname <- paste(args$db_hostname, args$db_name, sep = "/")
   } else {
-    server <- args$db_hostname
+    db_hostname <- args$db_hostname
   }
+  db_port <- args$db_port
 
   extra_settings <- NULL
   if (args$db_extra_settings != "") {
     extra_settings <- args$db_extra_settings
   }
 
-  connection_string <- NULL
   if (args$db_dbms == "sql server") {
-    connection_string <- paste(
-      "jdbc:",
-      gsub("\\s", "", args$db_dbms),  # removing the space in "sql server"
-      "://",
-      args$db_hostname,
-      ":",
-      args$db_port,
-      ";databaseName=",
-      args$db_name,
-      sep = ""
-    )
+    # https://learn.microsoft.com/en-us/sql/connect/jdbc/building-the-connection-url?view=sql-server-ver16
+    # https://learn.microsoft.com/en-us/sql/tools/configuration-manager/sql-server-browser-service?view=sql-server-ver16
+    #
+    # sql server supports a concept called "instance name", which provides a
+    # way to have multiple database services listening on a single server; the
+    # default instance will listen on port 1433, other instances will listen on
+    # arbitrary high port numbers; when clients want to connect to a
+    # non-default instanceName, they first query the server for the
+    # instanceName and the server responds with the TCP port number that
+    # instance is listening on; so it's a little like DNS (but for PORTS on a
+    # server instead of SERVERS on a network)
+    #
+    # NOTE: when both the instanceName and the port number are given to the
+    # driver, the instanceName is ignored! But to keep our argument processing
+    # simple we're doing the opposite; WHEN AN INSTANCENAME IS GIVEN WE IGNORE
+    # args$db_port; we know an instance name is being used if the
+    # args$db_hostname has the following format: "serverName\instanceName"
+
+    # Check if args$db_hostname contains a backslash (i.e., an instance name)
+    if (grepl("\\\\", db_hostname, fixed = TRUE)) {
+      hostname_parts <- strsplit(db_hostname, "\\\\")[[1]]
+      server_name <- hostname_parts[1]
+      instance_name <- hostname_parts[2]
+
+      # Append instanceName to extra_settings
+      extra_settings <- paste0(extra_settings, ";instanceName=", instance_name)
+      db_hostname <- server_name
+      db_port <- NULL
+    }
+
+    # sql server need takes the db name as an extra setting
+    extra_settings <- paste0(extra_settings, ";databaseName=", args$db_name)
   }
   connection_details <- createConnectionDetails(
     dbms = args$db_dbms,
     user = args$db_username,
     password = args$db_password,
-    server = server,
-    port = args$db_port,
+    server = db_hostname,
+    port = db_port,
     extraSettings = extra_settings,
-    connectionString = connection_string,
     pathToDriver = args$databaseconnector_jar_folder
   )
 }
 
 # run achilles
 if (!args$skip_achilles) {
-    cat("---> Starting Achilles\n")
+  cat("---> Starting Achilles\n")
 
   # https://ohdsi.github.io/Achilles/reference/achilles.html
   achilles(
@@ -338,7 +364,6 @@ if (args$dqd_web) {
         )[[1]]
         Sys.setenv(jsonPath = newest)
         print(str_glue("Using most recently modified results file: {newest}"))
-
       } else {
         print("WARNING: didn't find any results files for dqd_web to display!")
       }
