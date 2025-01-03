@@ -249,6 +249,12 @@ if (!args$skip_achilles || args$dqd) {
       hostname_parts <- strsplit(db_hostname, "\\\\")[[1]]
       server_name <- hostname_parts[1]
       instance_name <- hostname_parts[2]
+      cat(
+        "Note: using MS SQL Server instance name support; ",
+        "server_name:", server_name, "; ",
+        "instance_name:", instance_name, "; "
+      )
+
 
       # Append instanceName to extra_settings
       extra_settings <- paste0(extra_settings, ";instanceName=", instance_name)
