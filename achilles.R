@@ -7,7 +7,7 @@ library(DataQualityDashboard)
 library(docopt)
 library(stringr)
 
-wrapper_version_str <- "1.9"
+wrapper_version_str <- "1.11"
 
 doc_str <- 'Achilles Wrapper
 
@@ -15,14 +15,15 @@ Usage:
   achilles.R [options]
 
 General options:
-  -h, --help              Show this help message.
-  --num-threads=<n>       The number of threads to use when running achilles [default: 1]
-  --optimize-atlas-cache  Enables the optimizeAtlasCache option to the achilles function
-  --source-name=<name>    The source name used by the achilles function and included as part of the output path [default: NA]
-  --timestamp=<time_str>  The timestamp-style string to use when calculating some file output paths. Defaults to a string derived from the current date & time. [default: AUTO]
-  --skip-achilles         This option prevents Achilles from running, which can be useful for running the other utilities like the DQD Shiny App
-  --output-base=<str>     The output path used by achilles [default: /output]
-  --s3-target=<str>       Optional AWS S3 bucket path to sync with the output_base directory (for uploading results to S3)
+  -h, --help                    Show this help message.
+  --num-threads=<n>             The number of threads to use when running achilles [default: 1]
+  --optimize-atlas-cache        Enables the optimizeAtlasCache option to the achilles function
+  --source-name=<name>          The source name used by the achilles function and included as part of the output path [default: NA]
+  --timestamp=<time_str>        The timestamp-style string to use when calculating some file output paths. Defaults to a string derived from the current date & time. [default: AUTO]
+  --skip-achilles               This option prevents Achilles from running, which can be useful for running the other utilities like the DQD Shiny App
+  --output-base=<str>           The output path used by achilles [default: /output]
+  --s3-target=<str>             Optional AWS S3 bucket path to sync with the output_base directory (for uploading results to S3)
+  --exclude-analysis-ids=<str>  A comma-separated list of Achilles analysis IDs to exclude
 
 CDM Options:
   --cdm-version=<semver>  Which standard version of the CDM to use [default: 5]
@@ -51,7 +52,6 @@ DataQualityDashboard Options:
   --dqd                                Whether to run the DataQualityDashboard functions
   --dqd-sql-only                       Return DQD queries but do not run them
   --dqd-verbose                        Whether to write DataQualityDashboard info
-  --dqd-json-file                      Whether to write a JSON file to disk
   --dqd-skip-db-write                  Skip writing results to the dqdashboard_results table in the results schema
   --dqd-check-names=<list>             Optional comma-separated list of check names to execute
   --dqd-check-levels=<list>            Comma-separated list of which DQ check levels to execute [default: TABLE,FIELD,CONCEPT]
@@ -118,6 +118,7 @@ for (name in numeric_args) {
 }
 
 # arg conversions: csv to vector
+args$exclude_analysis_ids <- unlist(strsplit(args$exclude_analysis_ids, ","))
 args$dqd_check_names <- unlist(strsplit(args$dqd_check_names, ","))
 args$dqd_check_levels <- toupper(unlist(strsplit(args$dqd_check_levels, ",")))
 args$dqd_exclude_tables <- unlist(strsplit(args$dqd_exclude_tables, ","))
@@ -185,23 +186,23 @@ no_index_dbms <- list(
   "redshift"
 )
 
-# ensure output paths
-output_path <- file.path(
+# ensure output directories
+output_dir <- file.path(
   args$output_base,
   args$source_name,
   args$timestamp
 )
-json_output_path <- file.path(
+json_output_dir <- file.path(
   args$json_output_base,
   args$source_name,
   args$timestamp
 )
-dqd_output_path <- file.path(
+dqd_output_dir <- file.path(
   args$dqd_output_base,
   args$source_name,
   args$timestamp
 )
-for (path in c(output_path, json_output_path, dqd_output_path)) {
+for (path in c(output_dir, json_output_dir, dqd_output_dir)) {
   dir.create(path, showWarnings = FALSE, recursive = TRUE, mode = "0755")
 }
 
@@ -290,8 +291,9 @@ if (!args$skip_achilles) {
     cdmVersion = args$short_cdm_version,
     createIndices = !(args$db_dbms %in% no_index_dbms),
     numThreads = args$num_threads,
-    outputFolder = output_path,
-    optimizeAtlasCache = args$optimize_atlas_cache
+    outputFolder = output_dir,
+    optimizeAtlasCache = args$optimize_atlas_cache,
+    excludeAnalysisIds = args$exclude_analysis_ids
   )
 
   cat("---> Starting achilles exportToJson\n")
@@ -302,7 +304,7 @@ if (!args$skip_achilles) {
       cdmDatabaseSchema = args$cdm_schema,
       resultsDatabaseSchema = args$results_schema,
       vocabDatabaseSchema = args$vocab_schema,
-      outputPath = json_output_path,
+      outputPath = json_output_dir,
       compressIntoOneFile = args$json_compress
     )
   }
@@ -312,7 +314,7 @@ if (!args$skip_achilles) {
 if (args$dqd) {
   cat("---> Starting DataQualityDashboard checks\n")
 
-  output_file <- str_glue("DQD_Results{args$timestamp}.json")
+  output_filename <- str_glue("DQD_Results{args$timestamp}.json")
 
   # https://ohdsi.github.io/DataQualityDashboard/reference/executeDqChecks.html
   executeDqChecks(
@@ -323,8 +325,8 @@ if (args$dqd) {
     cdmSourceName = args$source_name,
     numThreads = args$num_threads,
     sqlOnly = args$dqd_sql_only,
-    outputFolder = dqd_output_path,
-    outputFile = output_file,
+    outputFolder = dqd_output_dir,
+    outputFile = output_filename,
     verboseMode = args$dqd_verbose,
     writeToTable = !(args$dqd_skip_db_write),
     checkLevels = args$dqd_check_levels,
@@ -337,7 +339,7 @@ if (args$dqd) {
   )
 
   # This envvar sets the DQDViz input file
-  Sys.setenv(jsonPath = output_file)
+  Sys.setenv(jsonPath = file.path(dqd_output_dir, output_filename))
 }
 
 # run dqd_web (dqdviz)
