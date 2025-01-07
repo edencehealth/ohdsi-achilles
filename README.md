@@ -2,16 +2,16 @@
 
 https://ohdsi.github.io/Achilles/articles/RunningAchilles.html
 
-This repo contains the source code for edenceHealth's Docker image containing both [OHDSI Achilles](https://github.com/OHDSI/Achilles) and [OHDSI DataQualityDashboard](https://github.com/OHDSI/DataQualityDashboard). These two tools share some basic dependenices and have a similar use cases, so we bundle them together. The image adds a lightweight wrapper around  these tools which simplifies the process of calling them without a separate R installation.
+This repo contains the source code for edenceHealth's Docker image containing both [OHDSI Achilles](https://github.com/OHDSI/Achilles) and [OHDSI DataQualityDashboard](https://github.com/OHDSI/DataQualityDashboard). These two tools share some basic dependenices and have a similar use cases, so we bundle them together. The image adds a lightweight wrapper around these tools which simplifies the process of calling them without a separate R installation.
 
 For more information about the tools, see the following links:
 
-* **OHDSI Achilles**
-    * [source code](https://github.com/OHDSI/Achilles)
-    * [documentation](https://ohdsi.github.io/Achilles/)
-* **OHDSI DataQualityDashboard**
-    * [source code](https://github.com/OHDSI/DataQualityDashboard)
-    * [documentation](https://ohdsi.github.io/DataQualityDashboard/)
+- **OHDSI Achilles**
+  - [source code](https://github.com/OHDSI/Achilles)
+  - [documentation](https://ohdsi.github.io/Achilles/)
+- **OHDSI DataQualityDashboard**
+  - [source code](https://github.com/OHDSI/DataQualityDashboard)
+  - [documentation](https://ohdsi.github.io/DataQualityDashboard/)
 
 The container can be used and configured via command-line arguments (for example passed to `docker run`) and with environment variables.
 
@@ -96,5 +96,6 @@ Each command line argument has an equivalent environment variable, to determine 
 4. boolean, flag-style arguments like `--skip-achilles` are assumed to be false, but they can be enabled by setting them with the values: `1`, `TRUE`, `YES`, `Y`, or `ON`
 
 For example:
-  * `--skip-achilles` becomes `SKIP_ACHILLES=1`
-  * `--output-base=xyz` becomes `OUTPUT_BASE=xyz`
+
+- `--skip-achilles` becomes `SKIP_ACHILLES=1`
+- `--output-base=xyz` becomes `OUTPUT_BASE=xyz`
