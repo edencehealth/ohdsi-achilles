@@ -1,11 +1,12 @@
 name: Docker
 
 "on":
+  pull_request:
   push:
     branches:
       - main
     tags:
-      - '*.*.*'
+      - "*.*.*"
 
 jobs:
   # https://github.com/edencehealth/workflows
@@ -14,4 +15,5 @@ jobs:
     with:
       container_name: ohdsi-achilles
       push_readme: README.md
+      push: true
     secrets: inherit

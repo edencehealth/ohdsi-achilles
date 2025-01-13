@@ -1,12 +1,7 @@
-**/*.env
-**/.env
-**/.env.*
-**/.mypy_cache
-**/.venv
-**/.vscode
-**/venv
+.vscode
 .git
 .github
 .gitignore
+.pre-commit-config.yaml
 .yamllint.yaml
 renv

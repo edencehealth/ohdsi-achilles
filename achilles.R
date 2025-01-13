@@ -7,22 +7,23 @@ library(DataQualityDashboard)
 library(docopt)
 library(stringr)
 
-wrapper_version_str <- "1.9"
+wrapper_version_str <- "1.11"
 
-'Achilles Wrapper
+doc_str <- 'Achilles Wrapper
 
 Usage:
   achilles.R [options]
 
 General options:
-  -h, --help              Show this help message.
-  --num-threads=<n>       The number of threads to use when running achilles [default: 1]
-  --optimize-atlas-cache  Enables the optimizeAtlasCache option to the achilles function
-  --source-name=<name>    The source name used by the achilles function and included as part of the output path [default: NA]
-  --timestamp=<time_str>  The timestamp-style string to use when calculating some file output paths. Defaults to a string derived from the current date & time. [default: AUTO]
-  --skip-achilles         This option prevents Achilles from running, which can be useful for running the other utilities like the DQD Shiny App
-  --output-base=<str>     The output path used by achilles [default: /output]
-  --s3-target=<str>       Optional AWS S3 bucket path to sync with the output_base directory (for uploading results to S3)
+  -h, --help                    Show this help message.
+  --num-threads=<n>             The number of threads to use when running achilles [default: 1]
+  --optimize-atlas-cache        Enables the optimizeAtlasCache option to the achilles function
+  --source-name=<name>          The source name used by the achilles function and included as part of the output path [default: NA]
+  --timestamp=<time_str>        The timestamp-style string to use when calculating some file output paths. Defaults to a string derived from the current date & time. [default: AUTO]
+  --skip-achilles               This option prevents Achilles from running, which can be useful for running the other utilities like the DQD Shiny App
+  --output-base=<str>           The output path used by achilles [default: /output]
+  --s3-target=<str>             Optional AWS S3 bucket path to sync with the output_base directory (for uploading results to S3)
+  --exclude-analysis-ids=<str>  A comma-separated list of Achilles analysis IDs to exclude
 
 CDM Options:
   --cdm-version=<semver>  Which standard version of the CDM to use [default: 5]
@@ -51,7 +52,6 @@ DataQualityDashboard Options:
   --dqd                                Whether to run the DataQualityDashboard functions
   --dqd-sql-only                       Return DQD queries but do not run them
   --dqd-verbose                        Whether to write DataQualityDashboard info
-  --dqd-json-file                      Whether to write a JSON file to disk
   --dqd-skip-db-write                  Skip writing results to the dqdashboard_results table in the results schema
   --dqd-check-names=<list>             Optional comma-separated list of check names to execute
   --dqd-check-levels=<list>            Comma-separated list of which DQ check levels to execute [default: TABLE,FIELD,CONCEPT]
@@ -67,8 +67,7 @@ DQDWeb Options:
   --dqd-web-port=<n>             The network port number the DataQualityDashboard Shiny App should listen on [default: 5641]
   --dqd-web-display-mode=<mode>  The Shiny App display.mode to use for the app, options include "showcase" or "normal" [default: normal]
   --dqd-web-input-json=<PATH>    Optionally override the input path used by the DataQualityDashboard Shiny App, by default this is derived from the output path by the DQD step [default: AUTO]
-' -> doc_str
-
+'
 
 # Argument & environment variable parsing
 parse_bool <- function(str_value) {
@@ -119,6 +118,7 @@ for (name in numeric_args) {
 }
 
 # arg conversions: csv to vector
+args$exclude_analysis_ids <- unlist(strsplit(args$exclude_analysis_ids, ","))
 args$dqd_check_names <- unlist(strsplit(args$dqd_check_names, ","))
 args$dqd_check_levels <- toupper(unlist(strsplit(args$dqd_check_levels, ",")))
 args$dqd_exclude_tables <- unlist(strsplit(args$dqd_exclude_tables, ","))
@@ -157,13 +157,20 @@ print(filtered_args)
 
 valid_dbms <- list(
   "bigquery",
+  "duckdb",
+  "hive",
+  "impala",
   "netezza",
   "oracle",
   "pdw",
   "postgresql",
   "redshift",
+  "snowflake",
+  "spark",
   "sql server",
-  "sqlite"
+  "sqlite extended",
+  "sqlite",
+  "synapse"
 )
 
 # these dbms require the database name to be appended to the hostname
@@ -179,23 +186,23 @@ no_index_dbms <- list(
   "redshift"
 )
 
-# ensure output paths
-output_path <- file.path(
+# ensure output directories
+output_dir <- file.path(
   args$output_base,
   args$source_name,
   args$timestamp
 )
-json_output_path <- file.path(
+json_output_dir <- file.path(
   args$json_output_base,
   args$source_name,
   args$timestamp
 )
-dqd_output_path <- file.path(
+dqd_output_dir <- file.path(
   args$dqd_output_base,
   args$source_name,
   args$timestamp
 )
-for (path in c(output_path, json_output_path, dqd_output_path)) {
+for (path in c(output_dir, json_output_dir, dqd_output_dir)) {
   dir.create(path, showWarnings = FALSE, recursive = TRUE, mode = "0755")
 }
 
@@ -208,45 +215,71 @@ if (!args$skip_achilles || args$dqd) {
   # Some connection packages need the database on the server argument.
   # see ?createConnectionDetails after loading library(Achilles)
   if (args$db_dbms %in% name_concat_dbms) {
-    server <- paste(args$db_hostname, args$db_name, sep = "/")
+    db_hostname <- paste(args$db_hostname, args$db_name, sep = "/")
   } else {
-    server <- args$db_hostname
+    db_hostname <- args$db_hostname
   }
+  db_port <- args$db_port
 
   extra_settings <- NULL
   if (args$db_extra_settings != "") {
     extra_settings <- args$db_extra_settings
   }
 
-  connection_string <- NULL
   if (args$db_dbms == "sql server") {
-    connection_string <- paste(
-      "jdbc:",
-      gsub("\\s", "", args$db_dbms),  # removing the space in "sql server"
-      "://",
-      args$db_hostname,
-      ":",
-      args$db_port,
-      ";databaseName=",
-      args$db_name,
-      sep = ""
-    )
+    # https://learn.microsoft.com/en-us/sql/connect/jdbc/building-the-connection-url?view=sql-server-ver16
+    # https://learn.microsoft.com/en-us/sql/tools/configuration-manager/sql-server-browser-service?view=sql-server-ver16
+    #
+    # sql server supports a concept called "instance name", which provides a
+    # way to have multiple database services listening on a single server; the
+    # default instance will listen on port 1433, other instances will listen on
+    # arbitrary high port numbers; when clients want to connect to a
+    # non-default instanceName, they first query the server for the
+    # instanceName and the server responds with the TCP port number that
+    # instance is listening on; so it's a little like DNS (but for PORTS on a
+    # server instead of SERVERS on a network)
+    #
+    # NOTE: when both the instanceName and the port number are given to the
+    # driver, the instanceName is ignored! But to keep our argument processing
+    # simple we're doing the opposite; WHEN AN INSTANCENAME IS GIVEN WE IGNORE
+    # args$db_port; we know an instance name is being used if the
+    # args$db_hostname has the following format: "serverName\instanceName"
+
+    # Check if args$db_hostname contains a backslash (i.e., an instance name)
+    if (grepl("\\", db_hostname, fixed = TRUE)) {
+      hostname_parts <- strsplit(db_hostname, "\\", fixed = TRUE)[[1]]
+      server_name <- hostname_parts[1]
+      instance_name <- hostname_parts[2]
+      cat(
+        "Note: using MS SQL Server instance name support; ",
+        "server_name:", server_name, "; ",
+        "instance_name:", instance_name, "; ",
+        "\n"
+      )
+
+      # Append instanceName to extra_settings
+      extra_settings <- paste0(extra_settings, ";instanceName=", instance_name)
+      db_hostname <- server_name
+      db_port <- NULL
+    }
+
+    # sql server need takes the db name as an extra setting
+    extra_settings <- paste0(extra_settings, ";databaseName=", args$db_name)
   }
   connection_details <- createConnectionDetails(
     dbms = args$db_dbms,
     user = args$db_username,
     password = args$db_password,
-    server = server,
-    port = args$db_port,
+    server = db_hostname,
+    port = db_port,
     extraSettings = extra_settings,
-    connectionString = connection_string,
     pathToDriver = args$databaseconnector_jar_folder
   )
 }
 
 # run achilles
 if (!args$skip_achilles) {
-    cat("---> Starting Achilles\n")
+  cat("---> Starting Achilles\n")
 
   # https://ohdsi.github.io/Achilles/reference/achilles.html
   achilles(
@@ -258,8 +291,9 @@ if (!args$skip_achilles) {
     cdmVersion = args$short_cdm_version,
     createIndices = !(args$db_dbms %in% no_index_dbms),
     numThreads = args$num_threads,
-    outputFolder = output_path,
-    optimizeAtlasCache = args$optimize_atlas_cache
+    outputFolder = output_dir,
+    optimizeAtlasCache = args$optimize_atlas_cache,
+    excludeAnalysisIds = args$exclude_analysis_ids
   )
 
   cat("---> Starting achilles exportToJson\n")
@@ -270,7 +304,7 @@ if (!args$skip_achilles) {
       cdmDatabaseSchema = args$cdm_schema,
       resultsDatabaseSchema = args$results_schema,
       vocabDatabaseSchema = args$vocab_schema,
-      outputPath = json_output_path,
+      outputPath = json_output_dir,
       compressIntoOneFile = args$json_compress
     )
   }
@@ -280,7 +314,7 @@ if (!args$skip_achilles) {
 if (args$dqd) {
   cat("---> Starting DataQualityDashboard checks\n")
 
-  output_file <- str_glue("DQD_Results{args$timestamp}.json")
+  output_filename <- str_glue("DQD_Results{args$timestamp}.json")
 
   # https://ohdsi.github.io/DataQualityDashboard/reference/executeDqChecks.html
   executeDqChecks(
@@ -291,8 +325,8 @@ if (args$dqd) {
     cdmSourceName = args$source_name,
     numThreads = args$num_threads,
     sqlOnly = args$dqd_sql_only,
-    outputFolder = dqd_output_path,
-    outputFile = output_file,
+    outputFolder = dqd_output_dir,
+    outputFile = output_filename,
     verboseMode = args$dqd_verbose,
     writeToTable = !(args$dqd_skip_db_write),
     checkLevels = args$dqd_check_levels,
@@ -305,7 +339,7 @@ if (args$dqd) {
   )
 
   # This envvar sets the DQDViz input file
-  Sys.setenv(jsonPath = output_file)
+  Sys.setenv(jsonPath = file.path(dqd_output_dir, output_filename))
 }
 
 # run dqd_web (dqdviz)
@@ -338,7 +372,6 @@ if (args$dqd_web) {
         )[[1]]
         Sys.setenv(jsonPath = newest)
         print(str_glue("Using most recently modified results file: {newest}"))
-
       } else {
         print("WARNING: didn't find any results files for dqd_web to display!")
       }

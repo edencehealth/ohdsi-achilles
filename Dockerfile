@@ -1,13 +1,13 @@
 FROM edence/rcore:1
 LABEL maintainer="edenceHealth <info@edence.health>"
 
+ARG AG="apt-get -yq --no-install-recommends"
+ARG DEBIAN_FRONTEND="noninteractive"
+
 RUN set -eux; \
-  export \
-    AG="apt-get -yq" \
-    DEBIAN_FRONTEND="noninteractive" \
-  ; \
-  apt-get -yq update; \
-  apt-get -yq install --no-install-recommends \
+  $AG update; \
+  $AG upgrade; \
+  $AG install \
     awscli \
   ; \
   $AG autoremove; \
@@ -20,11 +20,15 @@ RUN set -eux; \
     /var/cache/apt \
   ;
 
+WORKDIR /app
 COPY renv.lock ./
 RUN --mount=type=cache,sharing=private,target=/renv_cache \
   set -eux; \
   Rscript \
-    -e 'renv::activate("/app");' \
+    -e 'renv::activate();' \
+    -e 'renv::restore(packages = "renv");' \
+  ; \
+  Rscript \
     -e 'renv::restore();' \
     -e 'renv::isolate();' \
   ;
@@ -33,8 +37,7 @@ RUN --mount=type=cache,sharing=private,target=/renv_cache \
 ENV DATABASECONNECTOR_JAR_FOLDER="/usr/local/lib/DatabaseConnectorJars"
 RUN set -eux; \
   Rscript \
-    -e 'renv::activate("/app")' \
-    -e 'renv::install("shiny")' \
+    -e 'renv::activate()' \
     -e 'library(DatabaseConnector)' \
     -e 'downloadJdbcDrivers("all")' \
   ;

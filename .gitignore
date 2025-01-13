@@ -1,8 +1,5 @@
-**/*.env
-**/.env
-**/.env.*
-**/.mypy_cache
-**/.venv
-**/.vscode
-**/venv
+.Rhistory
+.Rprofile
+.Rproj.user
+.vscode
 renv
