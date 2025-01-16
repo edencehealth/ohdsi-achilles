@@ -88,10 +88,12 @@ arg_names <- names(args)
 # the args have their default value. (user-set cli args must override envvars)
 for (name in arg_names[!grepl("--", arg_names, fixed = TRUE)]) {
   envvar_name <- toupper(name)
-  envvar_value <- Sys.getenv(c(envvar_name), NA)
+  envvar_value <- Sys.getenv(envvar_name, unset = NA)
+  arg_default <- if (name %in% names(arg_defaults)) arg_defaults[[name]] else NA
+
   if (!is.na(envvar_value)) {
-    if (args[[name]] == arg_defaults[[name]]) {
-      if (typeof(arg_defaults[[name]]) == "logical") {
+    if (args[[name]] == arg_default) {
+      if (typeof(arg_default) == "logical") {
         print(str_glue("Importing logical envvar {envvar_name} into {name}"))
         args[[name]] <- parse_bool(envvar_value)
       } else {
