@@ -88,8 +88,8 @@ arg_names <- names(args)
 # the args have their default value. (user-set cli args must override envvars)
 for (arg_name in arg_names[!grepl("--", arg_names, fixed = TRUE)]) {
   envvar_name <- toupper(arg_name)
-  envvar_value <- Sys.getenv(envvar_name, unset = NA)
-  arg_default <- if (arg_name %in% names(arg_defaults)) arg_defaults[[arg_name]] else NA
+  envvar_value <- Sys.getenv(envvar_name, unset = NULL)
+  arg_default <- if (arg_name %in% names(arg_defaults)) arg_defaults[[arg_name]] else NULL
 
   if (!is.na(envvar_value)) {
     if (identical(args[[arg_name]], arg_default)) {
