@@ -15,15 +15,15 @@ Usage:
   achilles.R [options]
 
 General options:
-  -h, --help                    Show this help message.
-  --num-threads=<n>             The number of threads to use when running achilles [default: 1]
-  --optimize-atlas-cache        Enables the optimizeAtlasCache option to the achilles function
-  --source-name=<name>          The source name used by the achilles function and included as part of the output path [default: NA]
-  --timestamp=<time_str>        The timestamp-style string to use when calculating some file output paths. Defaults to a string derived from the current date & time. [default: AUTO]
-  --skip-achilles               This option prevents Achilles from running, which can be useful for running the other utilities like the DQD Shiny App
-  --output-base=<str>           The output path used by achilles [default: /output]
-  --s3-target=<str>             Optional AWS S3 bucket path to sync with the output_base directory (for uploading results to S3)
-  --exclude-analysis-ids=<str>  A comma-separated list of Achilles analysis IDs to exclude
+  -h, --help                     Show this help message.
+  --num-threads=<n>              The number of threads to use when running achilles [default: 1]
+  --optimize-atlas-cache         Enables the optimizeAtlasCache option to the achilles function
+  --source-name=<name>           The source name used by the achilles function and included as part of the output path [default: NA]
+  --timestamp=<time_str>         The timestamp-style string to use when calculating some file output paths. Defaults to a string derived from the current date & time. [default: AUTO]
+  --skip-achilles                This option prevents Achilles from running, which can be useful for running the other utilities like the DQD Shiny App
+  --output-base=<str>            The output path used by achilles [default: /output]
+  --s3-target=<str>              Optional AWS S3 bucket path to sync with the output_base directory (for uploading results to S3)
+  --exclude-analysis-ids=<list>  A comma-separated list of Achilles analysis IDs to exclude
 
 CDM Options:
   --cdm-version=<semver>  Which standard version of the CDM to use [default: 5]
@@ -86,19 +86,19 @@ arg_names <- names(args)
 
 # environment variables like DQD_WEB_HOST override args like --dqd-web-host if
 # the args have their default value. (user-set cli args must override envvars)
-for (name in arg_names[!grepl("--", arg_names, fixed = TRUE)]) {
-  envvar_name <- toupper(name)
+for (arg_name in arg_names[!grepl("--", arg_names, fixed = TRUE)]) {
+  envvar_name <- toupper(arg_name)
   envvar_value <- Sys.getenv(envvar_name, unset = NA)
-  arg_default <- if (name %in% names(arg_defaults)) arg_defaults[[name]] else NA
+  arg_default <- if (arg_name %in% names(arg_defaults)) arg_defaults[[arg_name]] else NA
 
   if (!is.na(envvar_value)) {
-    if (args[[name]] == arg_default) {
+    if (identical(args[[arg_name]], arg_default)) {
       if (typeof(arg_default) == "logical") {
         print(str_glue("Importing logical envvar {envvar_name} into {name}"))
-        args[[name]] <- parse_bool(envvar_value)
+        args[[arg_name]] <- parse_bool(envvar_value)
       } else {
         print(str_glue("Importing string envvar {envvar_name} into {name}"))
-        args[[name]] <- envvar_value
+        args[[arg_name]] <- envvar_value
       }
     } else {
       print(str_glue("Ignoring envvar {envvar_name}, CLI arg has precedence"))
