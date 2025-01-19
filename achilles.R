@@ -7,7 +7,7 @@ library(DataQualityDashboard)
 library(docopt)
 library(stringr)
 
-wrapper_version_str <- "1.11"
+wrapper_version_str <- "1.12"
 
 doc_str <- 'Achilles Wrapper
 
