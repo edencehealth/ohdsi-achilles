@@ -87,20 +87,17 @@ arg_names <- names(args)
 # environment variables like DQD_WEB_HOST override args like --dqd-web-host if
 # the args have their default value. (user-set cli args must override envvars)
 for (arg_name in arg_names[!grepl("--", arg_names, fixed = TRUE)]) {
-  message(arg_name)
   envvar_name <- toupper(arg_name)
   envvar_value <- Sys.getenv(envvar_name, unset = NA)
   arg_default <- if (arg_name %in% names(arg_defaults)) arg_defaults[[arg_name]] else NA
-  message(envvar_name, ", ", envvar_value, ", ", arg_default)
 
   if (!is.na(envvar_value)) {
     if (identical(args[[arg_name]], arg_default)) {
       if (typeof(arg_default) == "logical") {
-        message("here 3")
-        print(str_glue("Importing logical envvar {envvar_name} into {arg_name}"))
+        print(str_glue("Loading logical envvar {envvar_name} into {arg_name}"))
         args[[arg_name]] <- parse_bool(envvar_value)
       } else {
-        print(str_glue("Importing string envvar {envvar_name} into {arg_name}"))
+        print(str_glue("Loading string envvar {envvar_name} into {arg_name}"))
         args[[arg_name]] <- envvar_value
       }
     } else {
