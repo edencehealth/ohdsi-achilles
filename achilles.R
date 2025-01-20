@@ -7,7 +7,7 @@ library(DataQualityDashboard)
 library(docopt)
 library(stringr)
 
-wrapper_version_str <- "1.11"
+wrapper_version_str <- "1.12"
 
 doc_str <- 'Achilles Wrapper
 
@@ -15,15 +15,15 @@ Usage:
   achilles.R [options]
 
 General options:
-  -h, --help                    Show this help message.
-  --num-threads=<n>             The number of threads to use when running achilles [default: 1]
-  --optimize-atlas-cache        Enables the optimizeAtlasCache option to the achilles function
-  --source-name=<name>          The source name used by the achilles function and included as part of the output path [default: NA]
-  --timestamp=<time_str>        The timestamp-style string to use when calculating some file output paths. Defaults to a string derived from the current date & time. [default: AUTO]
-  --skip-achilles               This option prevents Achilles from running, which can be useful for running the other utilities like the DQD Shiny App
-  --output-base=<str>           The output path used by achilles [default: /output]
-  --s3-target=<str>             Optional AWS S3 bucket path to sync with the output_base directory (for uploading results to S3)
-  --exclude-analysis-ids=<str>  A comma-separated list of Achilles analysis IDs to exclude
+  -h, --help                     Show this help message.
+  --num-threads=<n>              The number of threads to use when running achilles [default: 1]
+  --optimize-atlas-cache         Enables the optimizeAtlasCache option to the achilles function
+  --source-name=<name>           The source name used by the achilles function and included as part of the output path [default: NA]
+  --timestamp=<time_str>         The timestamp-style string to use when calculating some file output paths. Defaults to a string derived from the current date & time. [default: AUTO]
+  --skip-achilles                This option prevents Achilles from running, which can be useful for running the other utilities like the DQD Shiny App
+  --output-base=<str>            The output path used by achilles [default: /output]
+  --s3-target=<str>              Optional AWS S3 bucket path to sync with the output_base directory (for uploading results to S3)
+  --exclude-analysis-ids=<list>  A comma-separated list of Achilles analysis IDs to exclude
 
 CDM Options:
   --cdm-version=<semver>  Which standard version of the CDM to use [default: 5]
@@ -41,12 +41,12 @@ CDM DB Options:
   --db-username=<name>     The username to connect to the database server with [default: pgadmin]
   --db-password=<name>     The password to connect to the database server with [default: postgres]
   --db-extra-settings=<s>  Optional additional settings for the database driver (in JDBC connection format)
-  --databaseconnector-jar-folder=<directory>  The path to the driver jar files used by the DatabaseConnector to connect to various DBMS [default: /usr/local/lib/DatabaseConnectorJars]
+  --databaseconnector-jar-folder=<DIR>  The path to the driver jar files used by the DatabaseConnector to connect to various DBMS [default: /usr/local/lib/DatabaseConnectorJars]
 
 JSON Export Options:
   --json-export           Whether to run the Achilles exportToJson function
   --json-compress         JSON files should be compressed into one zip file
-  --json-output-base=<DIRECTORY>  The output path used by exportToJson [default: /output]
+  --json-output-base=<DIR>  The output path used by exportToJson [default: /output]
 
 DataQualityDashboard Options:
   --dqd                                Whether to run the DataQualityDashboard functions
@@ -56,7 +56,7 @@ DataQualityDashboard Options:
   --dqd-check-names=<list>             Optional comma-separated list of check names to execute
   --dqd-check-levels=<list>            Comma-separated list of which DQ check levels to execute [default: TABLE,FIELD,CONCEPT]
   --dqd-exclude-tables=<list>          Comma-separated list of CDM tables to exclude from the checks
-  --dqd-output-base=<DIRECTORY>        The output path used by the dqd functions [default: /output]
+  --dqd-output-base=<DIR>              The output path used by the dqd functions [default: /output]
   --dqd-table-threshold-file=<file>    The optional location of the threshold file for evaluating the table checks; this is useful for overriding thresholds [default: default]
   --dqd-field-threshold-file=<file>    The optional location of the threshold file for evaluating the field checks; this is useful for overriding thresholds [default: default]
   --dqd-concept-threshold-file=<file>  The optional location of the threshold file for evaluating the concept checks; this is useful for overriding thresholds [default: default]
@@ -86,17 +86,19 @@ arg_names <- names(args)
 
 # environment variables like DQD_WEB_HOST override args like --dqd-web-host if
 # the args have their default value. (user-set cli args must override envvars)
-for (name in arg_names[!grepl("--", arg_names, fixed = TRUE)]) {
-  envvar_name <- toupper(name)
-  envvar_value <- Sys.getenv(c(envvar_name), NA)
+for (arg_name in arg_names[!grepl("--", arg_names, fixed = TRUE)]) {
+  envvar_name <- toupper(arg_name)
+  envvar_value <- Sys.getenv(envvar_name, unset = NA)
+  arg_default <- if (arg_name %in% names(arg_defaults)) arg_defaults[[arg_name]] else NA
+
   if (!is.na(envvar_value)) {
-    if (args[[name]] == arg_defaults[[name]]) {
-      if (typeof(arg_defaults[[name]]) == "logical") {
-        print(str_glue("Importing logical envvar {envvar_name} into {name}"))
-        args[[name]] <- parse_bool(envvar_value)
+    if (identical(args[[arg_name]], arg_default)) {
+      if (typeof(arg_default) == "logical") {
+        print(str_glue("Loading logical envvar {envvar_name} into {arg_name}"))
+        args[[arg_name]] <- parse_bool(envvar_value)
       } else {
-        print(str_glue("Importing string envvar {envvar_name} into {name}"))
-        args[[name]] <- envvar_value
+        print(str_glue("Loading string envvar {envvar_name} into {arg_name}"))
+        args[[arg_name]] <- envvar_value
       }
     } else {
       print(str_glue("Ignoring envvar {envvar_name}, CLI arg has precedence"))
