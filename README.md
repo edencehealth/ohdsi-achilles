@@ -78,13 +78,12 @@ DQDWeb Options:
   --dqd-web-port=<n>             The network port number the DataQualityDashboard Shiny App should listen on [default: 5641]
   --dqd-web-display-mode=<mode>  The Shiny App display.mode to use for the app, options include "showcase" or "normal" [default: normal]
   --dqd-web-input-json=<PATH>    Optionally override the input path used by the DataQualityDashboard Shiny App, by default this is derived from the output path by the DQD step [default: AUTO]
-[?25h
 ```
 
 Running the container with the `--version` argument prints the version information:
 
 ```
-edenceHealth Achilles/DQD Wrapper: 1.8 / Achilles: 1.7 / DataQualityDashboard: 1.4.1
+edenceHealth Achilles/DQD Wrapper: 1.12 / Achilles: 1.7.2 / DataQualityDashboard: 2.6.3
 ```
 
 ## Configuration via Environment Variables
